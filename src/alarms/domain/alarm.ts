@@ -1,31 +1,47 @@
+import { SerializedEventPayload } from '../../shared/domain/interfaces/serializable-event';
+import { VersionedAggregateRoot } from '../../shared/domain/versioned-aggregate-root';
 import { AlarmItem } from './alarm-item';
+import { AlarmAcknowledgedEvent } from './events/alarm-acknowledged.event';
+import { AlarmCreatedEvent } from "./events/alarm-created.event";
 import { AlarmSeverity } from './value-objects/alarm-severity';
 
-export class Alarm {
+export class Alarm extends VersionedAggregateRoot {
   public name: string;
   public severity: AlarmSeverity;
   public triggeredAt: Date;
   public isAcknowledged = false;
   public items = new Array<AlarmItem>();
 
-  constructor(public id: string) {}
+  constructor(public id: string) {
+    super();
+  }
 
   acknowledge() {
-    this.isAcknowledged = true;
+    this.apply(new AlarmAcknowledgedEvent(this.id));
   }
 
   addAlarmItem(item: AlarmItem) {
     this.items.push(item);
   }
 
-  toPlainObject() {
-    return {
-      id: this.id,
-      name: this.name,
-      severity: this.severity.value,
-      triggeredAt: this.triggeredAt,
-      isAcknowledged: this.isAcknowledged,
-      items: this.items.map(item => item.toPlainObject())
-    };
+  [`on${AlarmCreatedEvent.name}`](
+    event: SerializedEventPayload<AlarmCreatedEvent>,
+  ) {
+    this.name = event.alarm.name;
+    this.severity = new AlarmSeverity(event.alarm.severity);
+    this.triggeredAt = new Date(event.alarm.triggeredAt);
+    this.isAcknowledged = event.alarm.isAcknowledged;
+    this.items = event.alarm.items.map(
+      (item) => new AlarmItem(item.id, item.name, item.type),
+    );
+  }
+
+  [`on${AlarmAcknowledgedEvent.name}`](
+    event: SerializedEventPayload<AlarmAcknowledgedEvent>,
+  ) {
+    if (this.isAcknowledged) {
+      throw new Error('Alarm has already been acknowledged');
+    }
+    this.isAcknowledged = true;
   }
 }

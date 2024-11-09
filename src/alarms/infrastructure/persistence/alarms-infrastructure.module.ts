@@ -1,19 +1,23 @@
 import { Module } from '@nestjs/common';
+import { SharedModule } from '../../../shared/shared.module';
 import { InMemoryAlarmPersistenceModule } from './in-memory/in-memory-persistence.module';
 import { OrmAlarmPersistenceModule } from './orm/orm-persistence.module';
 
-@Module({})
+@Module({
+  imports: [SharedModule],
+  exports: [SharedModule],
+})
 export class AlarmsInfrastructureModule {
   static use(driver: 'orm' | 'in-memory') {
-    const persisntenceModule =
+    const persistenceModule =
       driver === 'orm'
         ? OrmAlarmPersistenceModule
         : InMemoryAlarmPersistenceModule;
 
     return {
       module: AlarmsInfrastructureModule,
-      imports: [persisntenceModule],
-      exports: [persisntenceModule],
+      imports: [persistenceModule],
+      exports: [persistenceModule],
     };
   }
 }

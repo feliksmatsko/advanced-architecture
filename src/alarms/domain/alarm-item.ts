@@ -5,7 +5,7 @@ export class AlarmItem {
     public type: string,
   ) {}
 
-  toPlainObject() {
+  toJSON() {
     return {
       id: this.id,
       name: this.name,
